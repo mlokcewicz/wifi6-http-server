@@ -43,10 +43,6 @@ static const struct gpio_dt_spec sw0 = GPIO_DT_SPEC_GET(SW0_NODE, gpios);
 
 static struct gpio_callback pin_cb_data;
 
-static const struct device *uart = DEVICE_DT_GET(DT_NODELABEL(uart0));
-
-static uint8_t rx_buf[UART_RECEIVE_BUFF_SIZE];
-
 // static const struct device *bme280_dev = DEVICE_DT_GET(DT_NODELABEL(bme280));
 // static const struct device *blink_dev = DEVICE_DT_GET(DT_NODELABEL(blink_led));
 
@@ -58,89 +54,21 @@ void pin_isr(const struct device *dev, struct gpio_callback *cb, gpio_port_pins_
 	LOG_WRN("Button pressed");
 }
 
-static void uart_cb(const struct device *dev, struct uart_event *evt, void *user_data)
-{
-	switch (evt->type)
-	{
-	case UART_RX_RDY:
-		if ((evt->data.rx.len) == 1)
-		{
-			if (evt->data.rx.buf[evt->data.rx.offset] == '1')
-				gpio_pin_toggle_dt(&led0);
-			else if (evt->data.rx.buf[evt->data.rx.offset] == '2')
-				gpio_pin_toggle_dt(&led1);
-		}
-		break;
-	case UART_RX_DISABLED:
-		uart_rx_enable(dev, rx_buf, sizeof rx_buf, UART_RECEIVE_TIMEOUT);
-		break;
-	default:
-		break;
-	}
-}
-
 //------------------------------------------------------------------------------
 
-typedef struct 
+#ifdef CONFIG_WIFI_CREDENTIALS_STATIC 
+/* STEP 8 - Define the function to populate the Wi-Fi credential parameters */
+static int wifi_args_to_params(struct wifi_connect_req_params *params)
 {
-    uint32_t x_reading;
-    uint32_t y_reading;
-    uint32_t z_reading;
-} SensorReading;
 
-K_MSGQ_DEFINE(device_message_queue, sizeof(SensorReading), 16, 4);
+	/* STEP 8.1 - Populate the SSID and password */
 
-#define STACKSIZE		 			2048
-#define PRODUCER_THREAD_PRIORITY 	6
-#define CONSUMER_THREAD_PRIORITY 	7
-#define PRODUCER_SLEEP_TIME_MS 		2200
 
-static void producer_func(void *unused1, void *unused2, void *unused3)
-{
-	ARG_UNUSED(unused1);
-	ARG_UNUSED(unused2);
-	ARG_UNUSED(unused3);
+	/* STEP 8.2 - Populate the rest of the relevant members */
 
-	while (1) 
-	{
-		static SensorReading acc_val = {100, 100, 100};
-
-        int ret = k_msgq_put(&device_message_queue,&acc_val,K_FOREVER);
-        if (ret)
-		{
-            LOG_ERR("Return value from k_msgq_put = %d",ret);
-        }
-
-		acc_val.x_reading += 1;
-		acc_val.y_reading += 1;
-		acc_val.z_reading += 1;
-
-		k_msleep(PRODUCER_SLEEP_TIME_MS);
-	}
+	return 0;
 }
-
-static void consumer_func(void *unused1, void *unused2, void *unused3)
-{
-	ARG_UNUSED(unused1);
-	ARG_UNUSED(unused2);
-	ARG_UNUSED(unused3);
-
-	while (1) 
-	{
-		SensorReading temp;
-		
-		int ret = k_msgq_get(&device_message_queue,&temp,K_FOREVER);
-		if (ret)
-		{
-            LOG_ERR("Return value from k_msgq_get = %d", ret);
-        }
-
-		LOG_INF("Values got from the queue: %d.%d.%d\r\n", temp.x_reading, temp.y_reading, temp.z_reading);
-	}
-}
-
-K_THREAD_DEFINE(producer, STACKSIZE, producer_func, NULL, NULL, NULL, PRODUCER_THREAD_PRIORITY, 0, 0);
-K_THREAD_DEFINE(consumer, STACKSIZE, consumer_func, NULL, NULL, NULL, CONSUMER_THREAD_PRIORITY, 0, 0);
+#endif //CONFIG_WIFI_CREDENTIALS_STATIC
 
 //------------------------------------------------------------------------------
 
@@ -181,21 +109,6 @@ int main(void)
 	if (ret < 0)
 		return ret;
 
-	if (!device_is_ready(uart))
-		return -1;
-
-	ret = uart_callback_set(uart, uart_cb, NULL);
-	if (ret < 0)
-		return ret;
-
-	ret = uart_tx(uart, "Press 1 or 2 to toggle LEDs\r\n", 30, SYS_FOREVER_US);
-	if (ret < 0)
-		return ret;
-
-	ret = uart_rx_enable(uart, rx_buf, sizeof(rx_buf), UART_RECEIVE_TIMEOUT);
-	if (ret < 0)
-		return ret;
-
 	// ret = device_is_ready(blink_dev);
 	// if (!ret)
 	// 	return ret;
@@ -210,6 +123,29 @@ int main(void)
 
 	// LOG_INF("Setting LED period to %u ms\n", BLINK_PERIOD_MS_MAX);
 	// blink_set_period_ms(blink_dev, BLINK_PERIOD_MS_MAX);
+
+	LOG_INF("Initializing Wi-Fi driver");
+	/* Sleep to allow initialization of Wi-Fi driver */
+	k_sleep(K_SECONDS(1));
+
+	/* STEP 7 - Initialize and add the callback function for network events */
+
+
+	#ifdef CONFIG_WIFI_CREDENTIALS_STATIC 
+	/* STEP 9.1 - Declare the variable for the network configuration parameters */
+
+
+	/* STEP 9.2 - Get the network interface */
+
+
+	/* STEP 10 - Populate cnx_params with the network configuration */
+
+
+	/* STEP 11 - Call net_mgmt() to request the Wi-Fi connection */
+
+	#endif //CONFIG_WIFI_CREDENTIALS_STATIC
+
+	// k_sem_take(&run_app, K_FOREVER);
 
 	while (1)
 	{
