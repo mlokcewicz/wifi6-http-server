@@ -1,5 +1,5 @@
 {
-    "C_Cpp.default.compileCommands": "build/compile_commands.json",
+    "C_Cpp.default.compileCommands": "build/v1.0.0_debug/whs/compile_commands.json",
     "cortex-debug.armToolchainPrefix": "arm-zephyr-eabi",
     "cortex-debug.armToolchainPath": "C:/embedded_tools/zephyr_sdk/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin/",
     "cortex-debug.JLinkGDBServerPath": "C:/embedded_tools/SEGGER/JLink_V796k/JLinkGDBServerCL.exe",

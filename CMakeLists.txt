@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.23 FATAL_ERROR)
 
 set(CMAKE_OBJECT_PATH_MAX 250)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # zephyr external modules
 list(APPEND EXTRA_ZEPHYR_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/hal/ext_drivers/custom_driver_module)
