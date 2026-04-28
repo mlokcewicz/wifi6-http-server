@@ -1,5 +1,12 @@
 # wifi6-http-server 
 
+Simple HTTP server based on nRF5340 MCU and nRF7002 Wi-Fi 6 chip.
+
+# Capabilities
+
+- Wi-Fi provision over BLE
+- FWU over BLE
+
 ## Tools
 
 * CMake 3.27.0
