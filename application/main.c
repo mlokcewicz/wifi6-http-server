@@ -16,9 +16,7 @@
 
 #include <blink.h>
 
-#ifdef CONFIG_MYFUNCTION
-#include "my_function.h"
-#endif
+#include <network_manager.h>
 
 //------------------------------------------------------------------------------
 
@@ -53,22 +51,6 @@ void pin_isr(const struct device *dev, struct gpio_callback *cb, gpio_port_pins_
 	gpio_pin_toggle_dt(&led1);
 	LOG_WRN("Button pressed");
 }
-
-//------------------------------------------------------------------------------
-
-#ifdef CONFIG_WIFI_CREDENTIALS_STATIC 
-/* STEP 8 - Define the function to populate the Wi-Fi credential parameters */
-static int wifi_args_to_params(struct wifi_connect_req_params *params)
-{
-
-	/* STEP 8.1 - Populate the SSID and password */
-
-
-	/* STEP 8.2 - Populate the rest of the relevant members */
-
-	return 0;
-}
-#endif //CONFIG_WIFI_CREDENTIALS_STATIC
 
 //------------------------------------------------------------------------------
 
@@ -124,28 +106,6 @@ int main(void)
 	// LOG_INF("Setting LED period to %u ms\n", BLINK_PERIOD_MS_MAX);
 	// blink_set_period_ms(blink_dev, BLINK_PERIOD_MS_MAX);
 
-	LOG_INF("Initializing Wi-Fi driver");
-	/* Sleep to allow initialization of Wi-Fi driver */
-	k_sleep(K_SECONDS(1));
-
-	/* STEP 7 - Initialize and add the callback function for network events */
-
-
-	#ifdef CONFIG_WIFI_CREDENTIALS_STATIC 
-	/* STEP 9.1 - Declare the variable for the network configuration parameters */
-
-
-	/* STEP 9.2 - Get the network interface */
-
-
-	/* STEP 10 - Populate cnx_params with the network configuration */
-
-
-	/* STEP 11 - Call net_mgmt() to request the Wi-Fi connection */
-
-	#endif //CONFIG_WIFI_CREDENTIALS_STATIC
-
-	// k_sem_take(&run_app, K_FOREVER);
 
 	while (1)
 	{
@@ -155,13 +115,6 @@ int main(void)
 			return -1;
 
 		k_msleep(SLEEP_TIME_MS);
-
-#ifdef CONFIG_MYFUNCTION
-		int a = 3, b = 4;
-		printk("The sum of %d and %d is %d\n", a, b, sum(a, b));
-#else
-		printk("MYFUNCTION not enabled\n");
-#endif
 
 #if 0
 		struct sensor_value temp_val;

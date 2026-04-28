@@ -1,7 +1,15 @@
 /* Step 3.4 - Configure button and LED for Serial Recovery */
+&mx25r64 {
+	status = "okay";
+};
+
 / {
   aliases {
 		mcuboot-button0 = &button1;
 		mcuboot-led0 = &led1;
   };
+
+  chosen {
+		nordic,pm-ext-flash = &mx25r64;
+	};
 };

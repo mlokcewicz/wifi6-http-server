@@ -27,7 +27,7 @@
                 "--",
                 "-DHW_BOARD_REVISION=1.0.0",
                 "-DBOARD_ROOT=${cwd}",
-                "-DCONF_FILE=prj.conf;prj_debug.conf"
+                // "-DCONF_FILE=prj.conf;prj_debug.conf"
             ]
         },
         {
