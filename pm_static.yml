@@ -67,26 +67,26 @@ settings_storage:
   region: flash_primary
   size: 0x2000
 sram_nonsecure:
-  address: 0x20018000
+  address: 0x20010000
   end_address: 0x20080000
   orig_span: &id002
   - sram_primary
   - rpmsg_nrf53_sram
   region: sram_primary
-  size: 0x68000
+  size: 0x70000
   span: *id002
 sram_primary:
-  address: 0x20018000
+  address: 0x20010000
   end_address: 0x20070000
   region: sram_primary
-  size: 0x58000
+  size: 0x60000
 sram_secure:
   address: 0x20000000
-  end_address: 0x20018000
+  end_address: 0x20010000
   orig_span: &id003
   - tfm_sram
   region: sram_primary
-  size: 0xFFFF
+  size: 0x10000
   span: *id003
 tfm:
   address: 0x0
@@ -150,14 +150,14 @@ tfm_secure:
   span: *id005
 tfm_sram:
   address: 0x20000000
-  end_address: 0x20018000
+  end_address: 0x20010000
   inside:
   - sram_secure
   placement:
     after:
     - start
   region: sram_primary
-  size: 0x18000
+  size: 0x10000
 tfm_storage:
   address: 0xf4000
   end_address: 0x100000

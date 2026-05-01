@@ -26,6 +26,8 @@
 #include <bluetooth/services/wifi_provisioning.h>
 
 #include <network_socket.h>
+#include <network_perf.h>
+#include <network_mqtt.h>
 
 //------------------------------------------------------------------------------
 
@@ -104,6 +106,9 @@ static void net_mgmt_event_handler(struct net_mgmt_event_callback *cb,
 			LOG_INF("Waiting for network to be connected");
 		} else {
 			dk_set_led_off(DK_LED1);
+#ifdef CONFIG_MQTT_HELPER
+            network_mqtt_disconnect();
+#endif
 			LOG_INF("Network disconnected");
 			wifi_connected = false;
 		}
@@ -336,9 +341,26 @@ static void button_handler(uint32_t button_state, uint32_t has_changed)
         if (err < 0)
         {
             LOG_INF("Failed to send message, %d", errno);
-            return;
         }
-    }
+#ifdef CONFIG_MQTT_HELPER
+err = network_mqtt_publish(0);
+if (err < 0)
+{
+    LOG_INF("Failed to publish on MQTT topic message, %d", err);
+}
+#endif
+}
+
+    if (has_changed & DK_BTN2_MSK && button_state & DK_BTN2_MSK)
+    {
+#ifdef CONFIG_MQTT_HELPER
+        int err = network_mqtt_publish(1);
+        if (err < 0)
+        {
+            LOG_INF("Failed to publish on MQTT topic message, %d", err);
+        }
+#endif
+}
 }
 
 //------------------------------------------------------------------------------
@@ -447,12 +469,11 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
 
 	k_sem_take(&run_app, K_FOREVER);
 
-    k_msleep(5000);
-
+    int ret = 0;
 
     /* SOCKET test */
 
-    int ret = network_socket_connect();
+    ret = network_socket_connect();
     if (ret < 0)
         LOG_ERR("Failed to connect to UDP server: %d", ret);
 
@@ -481,8 +502,31 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
     network_socket_close();
     
     /* Performance test */
+#ifdef CONFIG_NET_ZPERF
+    // ret = network_perf_check();
+    // if (ret < 0)
+    //     LOG_ERR("Network performance check failed: %d", ret);
+#endif
+
+    k_msleep(5000);
+
+    /* MQTT test */
+#ifdef CONFIG_MQTT_HELPER
+
+    do
+    {
+        ret = network_mqtt_connect();
+        k_msleep(500);
+    }
+    while (ret);
+
+#endif
 
 
+    while (1)
+    {
+        k_msleep(1000);
+    }
 
 }
 
