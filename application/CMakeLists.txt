@@ -2,6 +2,7 @@
 
 target_sources(app PRIVATE main.c)
 target_sources(app PRIVATE network_manager.c)
+target_sources(app PRIVATE network_socket.c)
 
 target_include_directories(app PRIVATE .)
 

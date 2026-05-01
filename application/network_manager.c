@@ -25,7 +25,7 @@
 #include <net/wifi_prov_core/wifi_prov_core.h>
 #include <bluetooth/services/wifi_provisioning.h>
 
-#include <zephyr/net/socket.h>
+#include <network_socket.h>
 
 //------------------------------------------------------------------------------
 
@@ -57,12 +57,10 @@ LOG_MODULE_REGISTER(network_manager);
 #define ADV_DAEMON_STACK_SIZE 4096
 #define ADV_DAEMON_PRIORITY   5
 
-#define SERVER_HOSTNAME "udp-echo.nordicsemi.academy"
-#define SERVER_PORT "2444"	
-
-#define MESSAGE_SIZE 256 
 #define MESSAGE_TO_SEND "Hello from nRF70 Series"
 #define SSTRLEN(s) (sizeof(s) - 1)
+#define RECV_BUF_SIZE 256 
+static uint8_t recv_buf[RECV_BUF_SIZE];
 
 //------------------------------------------------------------------------------
 
@@ -85,10 +83,6 @@ static const struct bt_data sd[] =
 {
 	BT_DATA(BT_DATA_SVC_DATA128, prov_svc_data, sizeof(prov_svc_data)),
 };
-
-static int sock;
-static struct sockaddr_storage server;
-static uint8_t recv_buf[MESSAGE_SIZE];
 
 //------------------------------------------------------------------------------
 
@@ -332,79 +326,18 @@ static void update_dev_name(struct net_linkaddr *mac_addr)
 
 //------------------------------------------------------------------------------
 
-static int server_resolve(void)
-{
-    /* STEP 5.1 - Call getaddrinfo() to get the IP address of the echo server */
-    int err;
-    struct addrinfo *result;
-    struct addrinfo hints = {
-        .ai_family = AF_INET,
-        .ai_socktype = SOCK_DGRAM};
-
-    err = getaddrinfo(SERVER_HOSTNAME, SERVER_PORT, &hints, &result);
-    if (err != 0)
-    {
-        LOG_INF("getaddrinfo() failed, err: %d", err);
-        return -EIO;
-    }
-
-    if (result == NULL)
-    {
-        LOG_INF("Error, address not found");
-        return -ENOENT;
-    }
-
-    /* STEP 5.2 - Retrieve the relevant information from the result structure */
-    struct sockaddr_in *server4 = ((struct sockaddr_in *)&server);
-    server4->sin_addr.s_addr = ((struct sockaddr_in *)result->ai_addr)->sin_addr.s_addr;
-    server4->sin_family = AF_INET;
-    server4->sin_port = ((struct sockaddr_in *)result->ai_addr)->sin_port;
-
-    /* STEP 5.3 - Convert the address into a string and print it */
-    char ipv4_addr[NET_IPV4_ADDR_LEN];
-    inet_ntop(AF_INET, &server4->sin_addr.s_addr, ipv4_addr, sizeof(ipv4_addr));
-    LOG_INF("IPv4 address of server found %s", ipv4_addr);
-
-    /* STEP 5.4 - Free the memory allocated for result */
-    freeaddrinfo(result);
-
-    return 0;
-}
-
-static int server_connect(void)
-{
-    int err;
-    /* STEP 6 - Create a UDP socket */
-    sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (sock < 0)
-    {
-        LOG_INF("Failed to create socket: %d.\n", errno);
-        return -errno;
-    }
-
-    /* STEP 7 - Connect the socket to the server */
-
-    err = connect(sock, (struct sockaddr *)&server, sizeof(struct sockaddr_in));
-    if (err < 0)
-    {
-        LOG_INF("Connect failed : %d\n", errno);
-        return -errno;
-    }
-    return 0;
-}
 
 static void button_handler(uint32_t button_state, uint32_t has_changed)
 {
     /* STEP 8 - Send a message every time button 1 is pressed */
     if (has_changed & DK_BTN1_MSK && button_state & DK_BTN1_MSK)
     {
-        int err = send(sock, MESSAGE_TO_SEND, SSTRLEN(MESSAGE_TO_SEND), 0);
+        int err = network_socket_send(MESSAGE_TO_SEND, SSTRLEN(MESSAGE_TO_SEND));
         if (err < 0)
         {
             LOG_INF("Failed to send message, %d", errno);
             return;
         }
-        LOG_INF("Successfully sent message: %s", MESSAGE_TO_SEND);
     }
 }
 
@@ -514,21 +447,19 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
 
 	k_sem_take(&run_app, K_FOREVER);
 
-    if (server_resolve() != 0)
-    {
-        LOG_INF("Failed to resolve server name");
-        return;
-    }
+    k_msleep(5000);
 
-    if (server_connect() != 0)
-    {
-        LOG_INF("Failed to connect to server");
-        return;
-    }
+
+    /* SOCKET test */
+
+    int ret = network_socket_connect();
+    if (ret < 0)
+        LOG_ERR("Failed to connect to UDP server: %d", ret);
+
 
     while (1)
     {
-        int received = recv(sock, recv_buf, sizeof(recv_buf) - 1, 0);
+        int received = network_socket_receive(recv_buf, sizeof(recv_buf) - 1);
 
         if (received < 0)
         {
@@ -544,9 +475,15 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
 
         recv_buf[received] = 0;
         LOG_INF("Data received from the server: (%s)", recv_buf);
+        break;
     }
 
-    zsock_close(sock);
+    network_socket_close();
+    
+    /* Performance test */
+
+
+
 }
 
 K_THREAD_DEFINE(network, NETWORK_THREAD_STACKSIZE, network_thread_func, NULL, NULL, NULL, NETWORK_THREAD_PRIORITY, 0, 0);
