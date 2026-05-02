@@ -47,13 +47,13 @@ static const char ca_certificate[] =
 
 //------------------------------------------------------------------------------
 
-static int server_resolve(void)
+static int server_resolve(bool use_tls)
 {
     int err;
     struct zsock_addrinfo *result;
     struct zsock_addrinfo hints = {.ai_family = AF_INET, .ai_socktype = SOCK_STREAM};
 
-    err = zsock_getaddrinfo(CONFIG_HTTP_SAMPLE_HOSTNAME, CONFIG_HTTP_SAMPLE_PORT_TLS, &hints, &result);
+    err = zsock_getaddrinfo(CONFIG_HTTP_SAMPLE_HOSTNAME, use_tls ? CONFIG_HTTP_SAMPLE_PORT_TLS : CONFIG_HTTP_SAMPLE_PORT, &hints, &result);
     if (err != 0)
     {
         LOG_ERR("getaddrinfo failed, err: %d, %s", err, zsock_gai_strerror(err));
@@ -80,34 +80,38 @@ static int server_resolve(void)
     return 0;
 }
 
-static int server_connect(void)
+static int server_connect(bool use_tls)
 {
 	int err;
-	sock = zsock_socket(AF_INET, SOCK_STREAM, IPPROTO_TLS_1_2);
+	sock = zsock_socket(AF_INET, SOCK_STREAM, use_tls ? IPPROTO_TLS_1_2 : IPPROTO_TCP);
     if (sock < 0)
     {
         LOG_ERR("Failed to set up HTTPS socket, err: %d, %s", errno, strerror(errno));
         return -errno;
     }
 
-    sec_tag_t sec_tag_opt[] = 
+    if (use_tls)
     {
-        HTTP_TLS_SEC_TAG,
-    };
-    err = setsockopt(sock, SOL_TLS, TLS_SEC_TAG_LIST, sec_tag_opt, sizeof(sec_tag_opt));
-    if (err)
-    {
-        LOG_ERR("Failed to set TLS security TAG list, err: %d", errno);
-        (void)close(sock);
-        return -errno;
-    }
+        sec_tag_t sec_tag_opt[] =
+        {
+            HTTP_TLS_SEC_TAG,
+        };
 
-    err = setsockopt(sock, SOL_TLS, TLS_HOSTNAME, CONFIG_HTTP_SAMPLE_HOSTNAME, sizeof(CONFIG_HTTP_SAMPLE_HOSTNAME));
-    if (err)
-    {
-        LOG_ERR("Failed to set TLS_HOSTNAME option, err: %d", errno);
-        (void)close(sock);
-        return -errno;
+        err = setsockopt(sock, SOL_TLS, TLS_SEC_TAG_LIST, sec_tag_opt, sizeof(sec_tag_opt));
+        if (err)
+        {
+            LOG_ERR("Failed to set TLS security TAG list, err: %d", errno);
+            (void)close(sock);
+            return -errno;
+        }
+
+        err = setsockopt(sock, SOL_TLS, TLS_HOSTNAME, CONFIG_HTTP_SAMPLE_HOSTNAME, sizeof(CONFIG_HTTP_SAMPLE_HOSTNAME));
+        if (err)
+        {
+            LOG_ERR("Failed to set TLS_HOSTNAME option, err: %d", errno);
+            (void)close(sock);
+            return -errno;
+        }
     }
 
     err = zsock_connect(sock, (struct sockaddr *)&server, sizeof(struct sockaddr_in));
@@ -272,21 +276,25 @@ static int setup_credentials(void)
 
 //------------------------------------------------------------------------------
 
-int network_http_client_connect(void)
+int network_http_client_connect(bool use_tls)
 {
-    if (server_resolve() != 0)
+    if (server_resolve(use_tls) != 0)
     {
         LOG_ERR("Failed to resolve server name");
         return -1;
     }
 
-    if (setup_credentials() != 0) 
+    if (use_tls)
     {
-		LOG_ERR("Setup credentials failed");
-	}
+
+        if (setup_credentials() != 0)
+        {
+            LOG_ERR("Setup credentials failed");
+        }
+    }
 
     LOG_INF("Connecting to %s:%s", CONFIG_HTTP_SAMPLE_HOSTNAME, CONFIG_HTTP_SAMPLE_PORT_TLS);
-    if (server_connect() != 0)
+    if (server_connect(use_tls) != 0)
     {
         LOG_ERR("Failed to connect to server");
         return -1;
@@ -299,7 +307,7 @@ int network_http_client_connect(void)
         return -1;
 
         /* STEP 12 - Send a PUT request to HTTP server */
-        if (server_connect() >= 0)
+        if (server_connect(use_tls) >= 0)
         {
             client_http_put();
             counter++;
@@ -309,9 +317,9 @@ int network_http_client_connect(void)
     return 0;
 }
 
-int network_http_client_test(void)
+int network_http_client_test(bool use_tls)
 {
-    if (server_connect() >= 0)
+    if (server_connect(use_tls) >= 0)
     {
         client_http_put();
         counter++;
@@ -319,7 +327,7 @@ int network_http_client_test(void)
 
     k_msleep(500);
 
-    if (server_connect() >= 0)
+    if (server_connect(use_tls) >= 0)
     {
         client_http_get();
     }

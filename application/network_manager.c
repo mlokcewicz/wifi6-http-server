@@ -365,7 +365,7 @@ static void button_handler(uint32_t button_state, uint32_t has_changed)
             LOG_INF("Failed to publish on MQTT topic message, %d", err);
         }
 #endif
-        network_http_client_test();
+        network_http_client_test(false);
     }
 }
 
@@ -522,8 +522,8 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
     network_mqtt_connect();
 #endif
 
-    network_http_client_connect();
-    network_http_client_test();
+    network_http_client_connect(false);
+    network_http_client_test(false);
 
     while (1)
     {

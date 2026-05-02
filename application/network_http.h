@@ -18,9 +18,9 @@ extern "C" {
 
 //------------------------------------------------------------------------------
 
-int network_http_client_connect(void);
+int network_http_client_connect(bool use_tls);
 
-int network_http_client_test(void);
+int network_http_client_test(bool use_tls);
 
 //------------------------------------------------------------------------------
 
