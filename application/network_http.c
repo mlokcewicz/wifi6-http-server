@@ -12,6 +12,7 @@
 #include <zephyr/net/socket.h>
 
 #include <zephyr/net/http/client.h>
+#include <zephyr/net/tls_credentials.h>
 
 #include <stdio.h>
 
@@ -21,6 +22,9 @@ LOG_MODULE_REGISTER(network_http);
 
 #define CONFIG_HTTP_SAMPLE_HOSTNAME "rest.nordicsemi.academy"
 #define CONFIG_HTTP_SAMPLE_PORT "80"
+#define CONFIG_HTTP_SAMPLE_PORT_TLS "443"
+
+#define HTTP_TLS_SEC_TAG 42
 
 #define RECV_BUF_SIZE 2048
 #define CLIENT_ID_SIZE 36
@@ -34,6 +38,12 @@ static char recv_buf[RECV_BUF_SIZE];
 static char client_id_buf[CLIENT_ID_SIZE + 2];
 
 static int counter = 0;
+
+static const char ca_certificate[] = 
+{
+	#include "AmazonRootCA1.pem.inc"
+	IF_ENABLED(CONFIG_TLS_CREDENTIALS, (0x00))
+};
 
 //------------------------------------------------------------------------------
 
@@ -72,23 +82,42 @@ static int server_resolve(void)
 
 static int server_connect(void)
 {
-    int err;
-    sock = zsock_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	int err;
+	sock = zsock_socket(AF_INET, SOCK_STREAM, IPPROTO_TLS_1_2);
     if (sock < 0)
     {
-        LOG_ERR("Failed to create socket, err: %d, %s", errno, strerror(errno));
+        LOG_ERR("Failed to set up HTTPS socket, err: %d, %s", errno, strerror(errno));
+        return -errno;
+    }
+
+    sec_tag_t sec_tag_opt[] = 
+    {
+        HTTP_TLS_SEC_TAG,
+    };
+    err = setsockopt(sock, SOL_TLS, TLS_SEC_TAG_LIST, sec_tag_opt, sizeof(sec_tag_opt));
+    if (err)
+    {
+        LOG_ERR("Failed to set TLS security TAG list, err: %d", errno);
+        (void)close(sock);
+        return -errno;
+    }
+
+    err = setsockopt(sock, SOL_TLS, TLS_HOSTNAME, CONFIG_HTTP_SAMPLE_HOSTNAME, sizeof(CONFIG_HTTP_SAMPLE_HOSTNAME));
+    if (err)
+    {
+        LOG_ERR("Failed to set TLS_HOSTNAME option, err: %d", errno);
+        (void)close(sock);
         return -errno;
     }
 
     err = zsock_connect(sock, (struct sockaddr *)&server, sizeof(struct sockaddr_in));
-    if (err < 0)
-    {
-        LOG_ERR("Connecting to server failed, err: %d, %s", errno, strerror(errno));
-        return -errno;
-    }
+	if (err < 0) {
+		LOG_ERR("Connecting to server failed, err: %d, %s", errno, strerror(errno));
+		return -errno;
+	}
 
-    LOG_INF("Connected to server");
-    return 0;
+	LOG_INF("Connected to server");
+	return 0;
 }
 
 static int response_cb(struct http_response *rsp, enum http_final_call final_data, void *user_data)
@@ -227,6 +256,20 @@ static int client_get_new_id(void)
     return err;
 }
 
+static int setup_credentials(void)
+{
+	LOG_INF("Provisioning server certificate");
+
+    int err = tls_credential_add(HTTP_TLS_SEC_TAG, TLS_CREDENTIAL_CA_CERTIFICATE, ca_certificate, sizeof(ca_certificate));
+	if (err == -EEXIST){
+		LOG_ERR("Certificate already exists, sec tag: %d", HTTP_TLS_SEC_TAG);
+	} else if (err < 0) {
+		LOG_ERR("Failed to provision server certificate: %d", err);
+	}
+
+	return err;
+}
+
 //------------------------------------------------------------------------------
 
 int network_http_client_connect(void)
@@ -234,21 +277,26 @@ int network_http_client_connect(void)
     if (server_resolve() != 0)
     {
         LOG_ERR("Failed to resolve server name");
-        return 0;
+        return -1;
     }
 
-    LOG_INF("Connecting to %s:%s", CONFIG_HTTP_SAMPLE_HOSTNAME, CONFIG_HTTP_SAMPLE_PORT);
+    if (setup_credentials() != 0) 
+    {
+		LOG_ERR("Setup credentials failed");
+	}
+
+    LOG_INF("Connecting to %s:%s", CONFIG_HTTP_SAMPLE_HOSTNAME, CONFIG_HTTP_SAMPLE_PORT_TLS);
     if (server_connect() != 0)
     {
         LOG_ERR("Failed to connect to server");
-        return 0;
+        return -1;
     }
 
     /* STEP 11 - Retrieve the client ID upon connection */
     if (client_get_new_id() < 0)
     {
         LOG_INF("Failed to get client ID");
-        return 0;
+        return -1;
 
         /* STEP 12 - Send a PUT request to HTTP server */
         if (server_connect() >= 0)

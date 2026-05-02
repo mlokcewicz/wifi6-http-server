@@ -68,7 +68,7 @@
             "args": [
                 "build",
                 "-d", "build/v1.0.0_debug",
-                "-t", "tfm_ram_report"
+                "-t", "ram_report"
             ],
             "group": {
                 "kind": "build",

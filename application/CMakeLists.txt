@@ -17,3 +17,9 @@ target_link_libraries(app PRIVATE
 zephyr_library_include_directories($<TARGET_PROPERTY:wifi_prov_core,BINARY_DIR>)
 
 target_link_libraries(app PRIVATE wifi_prov_ble)
+
+set(gen_dir ${CMAKE_CURRENT_BINARY_DIR}/certs)
+
+zephyr_include_directories(${gen_dir})
+
+generate_inc_file_for_target(app credentials/AmazonRootCA1.pem ${gen_dir}/AmazonRootCA1.pem.inc)
