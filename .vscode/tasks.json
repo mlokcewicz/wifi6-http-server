@@ -8,9 +8,6 @@
             "ZEPHYR_BASE": "C:\\embedded_tools\\ncs\\v3.2.2\\zephyr",
         },
         "cwd": "${workspaceFolder}"
-        // Example:
-        // D:\Inne\Links>mklink /D whs D:\Elektronika\Repozytoria\GitHub\firmware\wifi6-http-server
-        // "cwd": "D:\\Inne\\Links\\whs"
     },
     "tasks": [
         {
@@ -23,12 +20,11 @@
                 "--pristine",
                 "--cmake-only",
                 "-b", "nrf7002dk/nrf5340/cpuapp/ns",
-                // "-b", "nrf7002dk/nrf5340/cpuapp",
                 "-d", "build/v1.0.0_debug",
                 "--",
                 "-DHW_BOARD_REVISION=1.0.0",
                 "-DBOARD_ROOT=${cwd}",
-                // "-DCONF_FILE=prj.conf;prj_debug.conf"
+                "-DEXTRA_CONF_FILE=prj_debug.conf"
             ]
         },
                 {
@@ -40,12 +36,11 @@
                 "--sysbuild",
                 "--pristine",
                 "-b", "nrf7002dk/nrf5340/cpuapp/ns",
-                // "-b", "nrf7002dk/nrf5340/cpuapp",
                 "-d", "build/v1.0.0_debug",
                 "--",
                 "-DHW_BOARD_REVISION=1.0.0",
                 "-DBOARD_ROOT=${cwd}",
-                // "-DCONF_FILE=prj.conf;prj_debug.conf"
+                "-DEXTRA_CONF_FILE=prj_debug.conf"
             ]
         },
         {
