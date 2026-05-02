@@ -5,6 +5,7 @@ target_sources(app PRIVATE network_manager.c)
 target_sources(app PRIVATE network_socket.c)
 target_sources_ifdef(CONFIG_NET_ZPERF app PRIVATE network_perf.c)
 target_sources_ifdef(CONFIG_MQTT_HELPER app PRIVATE network_mqtt.c)
+target_sources(app PRIVATE network_http.c)
 
 target_include_directories(app PRIVATE .)
 

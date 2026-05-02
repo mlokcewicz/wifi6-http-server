@@ -28,6 +28,7 @@
 #include <network_socket.h>
 #include <network_perf.h>
 #include <network_mqtt.h>
+#include <network_http.h>
 
 //------------------------------------------------------------------------------
 
@@ -59,7 +60,7 @@ LOG_MODULE_REGISTER(network_manager);
 #define ADV_DAEMON_STACK_SIZE 4096
 #define ADV_DAEMON_PRIORITY   5
 
-#define MESSAGE_TO_SEND "Hello from nRF70 Series"
+#define TCP_MESSAGE_TO_SEND "Hello from nRF70 Series"
 #define SSTRLEN(s) (sizeof(s) - 1)
 #define RECV_BUF_SIZE 256 
 static uint8_t recv_buf[RECV_BUF_SIZE];
@@ -337,20 +338,19 @@ static void button_handler(uint32_t button_state, uint32_t has_changed)
     /* STEP 8 - Send a message every time button 1 is pressed */
     if (has_changed & DK_BTN1_MSK && button_state & DK_BTN1_MSK)
     {
-        int err = network_socket_send(MESSAGE_TO_SEND, SSTRLEN(MESSAGE_TO_SEND));
+        int err = network_socket_send(TCP_MESSAGE_TO_SEND, SSTRLEN(TCP_MESSAGE_TO_SEND));
         if (err < 0)
         {
             LOG_INF("Failed to send message, %d", errno);
         }
 #ifdef CONFIG_MQTT_HELPER
-err = network_mqtt_publish(0);
-if (err < 0)
-{
-    LOG_INF("Failed to publish on MQTT topic message, %d", err);
-}
+        err = network_mqtt_publish(0);
+        if (err < 0)
+        {
+            LOG_INF("Failed to publish on MQTT topic message, %d", err);
+        }
 #endif
-}
-
+    }
     if (has_changed & DK_BTN2_MSK && button_state & DK_BTN2_MSK)
     {
 #ifdef CONFIG_MQTT_HELPER
@@ -360,7 +360,8 @@ if (err < 0)
             LOG_INF("Failed to publish on MQTT topic message, %d", err);
         }
 #endif
-}
+        network_http_client_test();
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -382,10 +383,10 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
 	}
 
     LOG_INF("Initializing Wi-Fi driver");
+
 	/* Sleep to allow initialization of Wi-Fi driver */
 	k_sleep(K_SECONDS(1));
 
-	/* STEP 7 - Initialize and add the callback function for network events */
     net_mgmt_init_event_callback(&mgmt_cb, net_mgmt_event_handler, EVENT_MASK);
     net_mgmt_add_event_callback(&mgmt_cb);
 
@@ -400,7 +401,6 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
 	}
 	LOG_INF("Bluetooth initialized.\n");
 
-    /* STEP 9 - Enable the Bluetooth Wi-Fi Provisioning Service */
     err = wifi_prov_init();
     if (err == 0)
     {
@@ -412,7 +412,6 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
         return;
     }
 
-    /* STEP 10.1 Prepare the advertisement data */
     struct net_if *iface = net_if_get_default();
     struct net_linkaddr *mac_addr = net_if_get_link_addr(iface);
     char device_name_str[sizeof(device_name) + 1];
@@ -424,7 +423,6 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
     memcpy(device_name_str, device_name, sizeof(device_name));
     bt_set_name(device_name_str);
 
-    /* STEP 10.2 - Start advertising */
     update_wifi_status_in_adv();
 
     err = bt_le_adv_start(prov_svc_data[ADV_DATA_FLAG_IDX] & ADV_DATA_FLAG_PROV_STATUS_BIT ? PROV_BT_LE_ADV_PARAM_SLOW : PROV_BT_LE_ADV_PARAM_FAST,
@@ -439,12 +437,10 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
     k_work_queue_init(&adv_daemon_work_q);
 	k_work_queue_start(&adv_daemon_work_q, adv_daemon_stack_area, K_THREAD_STACK_SIZEOF(adv_daemon_stack_area), ADV_DAEMON_PRIORITY, NULL);
 
-	/* STEP 11 - Initializa all work items to their respective task */
     k_work_init_delayable(&update_adv_param_work, update_adv_param_task);
     k_work_init_delayable(&update_adv_data_work, update_adv_data_task);
     k_work_schedule_for_queue(&adv_daemon_work_q, &update_adv_data_work, K_SECONDS(ADV_DATA_UPDATE_INTERVAL));
 
-	/* STEP 12 - Apply stored Wi-Fi credentials */
     net_mgmt(NET_REQUEST_WIFI_CONNECT_STORED, iface, NULL, 0);
 
 	#if CONFIG_WIFI_CREDENTIALS_STATIC
@@ -473,6 +469,9 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
 
     /* SOCKET test */
 
+    (void)recv_buf;
+#ifdef SOCKET_TEST
+
     ret = network_socket_connect();
     if (ret < 0)
         LOG_ERR("Failed to connect to UDP server: %d", ret);
@@ -500,28 +499,20 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
     }
 
     network_socket_close();
-    
-    /* Performance test */
-#ifdef CONFIG_NET_ZPERF
-    // ret = network_perf_check();
-    // if (ret < 0)
-    //     LOG_ERR("Network performance check failed: %d", ret);
 #endif
 
-    k_msleep(5000);
+    /* Performance test */
+#ifdef CONFIG_NET_ZPERF
+    network_perf_check();
+#endif
 
     /* MQTT test */
 #ifdef CONFIG_MQTT_HELPER
-
-    do
-    {
-        ret = network_mqtt_connect();
-        k_msleep(500);
-    }
-    while (ret);
-
+    network_mqtt_connect();
 #endif
 
+    network_http_client_connect();
+    network_http_client_test();
 
     while (1)
     {

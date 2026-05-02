@@ -116,5 +116,7 @@ int network_perf_check(void)
         return ret;
     }
 
+    LOG_INF("Wi-Fi benchmark finished");
+
     return 0;
 }
