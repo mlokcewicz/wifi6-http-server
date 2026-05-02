@@ -17,6 +17,7 @@
 #include <zephyr/net/wifi_mgmt.h>
 #include <zephyr/net/wifi_credentials.h>
 
+#if CONFIG_BT_WIFI_PROV
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/hci.h>
 #include <zephyr/bluetooth/conn.h>
@@ -24,6 +25,7 @@
 #include <zephyr/bluetooth/gatt.h>
 #include <net/wifi_prov_core/wifi_prov_core.h>
 #include <bluetooth/services/wifi_provisioning.h>
+#endif
 
 #include <network_socket.h>
 #include <network_perf.h>
@@ -34,7 +36,7 @@
 
 LOG_MODULE_REGISTER(network_manager);
 
-#define NETWORK_THREAD_STACKSIZE		 			15200
+#define NETWORK_THREAD_STACKSIZE		 			8200
 #define NETWORK_THREAD_PRIORITY 	                6
 
 #define EVENT_MASK (NET_EVENT_L4_CONNECTED | NET_EVENT_L4_DISCONNECTED)
@@ -71,6 +73,7 @@ static struct net_mgmt_event_callback mgmt_cb;
 static bool wifi_connected;
 static K_SEM_DEFINE(run_app, 0, 1);
 
+#if CONFIG_BT_WIFI_PROV
 static uint8_t prov_svc_data[] = {BT_UUID_PROV_VAL, 0x00, 0x00, 0x00, 0x00};
 
 static uint8_t device_name[] = {'P', 'V', '0', '0', '0', '0', '0', '0'};
@@ -86,6 +89,7 @@ static const struct bt_data sd[] =
 {
 	BT_DATA(BT_DATA_SVC_DATA128, prov_svc_data, sizeof(prov_svc_data)),
 };
+#endif
 
 //------------------------------------------------------------------------------
 
@@ -143,6 +147,7 @@ static int wifi_args_to_params(struct wifi_connect_req_params *params)
 #endif //CONFIG_WIFI_CREDENTIALS_STATIC
 
 //------------------------------------------------------------------------------
+#if CONFIG_BT_WIFI_PROV
 
 K_THREAD_STACK_DEFINE(adv_daemon_stack_area, ADV_DAEMON_STACK_SIZE);
 static struct k_work_q adv_daemon_work_q;
@@ -329,7 +334,7 @@ static void update_dev_name(struct net_linkaddr *mac_addr)
 	byte_to_hex(&device_name[4], mac_addr->addr[4], 'A');
 	byte_to_hex(&device_name[6], mac_addr->addr[5], 'A');
 }
-
+#endif
 //------------------------------------------------------------------------------
 
 
@@ -390,6 +395,7 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
     net_mgmt_init_event_callback(&mgmt_cb, net_mgmt_event_handler, EVENT_MASK);
     net_mgmt_add_event_callback(&mgmt_cb);
 
+#if CONFIG_BT_WIFI_PROV
     bt_conn_auth_cb_register(&auth_cb_display);
 	bt_conn_auth_info_cb_register(&auth_info_cb_display);
 
@@ -411,8 +417,10 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
         LOG_ERR("Error occurs when initializing Wi-Fi provisioning service.\n");
         return;
     }
+#endif
 
     struct net_if *iface = net_if_get_default();
+#if CONFIG_BT_WIFI_PROV
     struct net_linkaddr *mac_addr = net_if_get_link_addr(iface);
     char device_name_str[sizeof(device_name) + 1];
 
@@ -440,6 +448,7 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
     k_work_init_delayable(&update_adv_param_work, update_adv_param_task);
     k_work_init_delayable(&update_adv_data_work, update_adv_data_task);
     k_work_schedule_for_queue(&adv_daemon_work_q, &update_adv_data_work, K_SECONDS(ADV_DATA_UPDATE_INTERVAL));
+#endif
 
     net_mgmt(NET_REQUEST_WIFI_CONNECT_STORED, iface, NULL, 0);
 
@@ -462,6 +471,8 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
     }
 
 	#endif //CONFIG_WIFI_CREDENTIALS_STATIC
+
+    LOG_INF("Waiting for Wi-Fi connection");
 
 	k_sem_take(&run_app, K_FOREVER);
 
@@ -518,6 +529,8 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
     {
         k_msleep(1000);
     }
+
+    (void)ret;
 
 }
 

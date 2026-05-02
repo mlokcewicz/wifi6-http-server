@@ -9,14 +9,14 @@ target_sources(app PRIVATE network_http.c)
 
 target_include_directories(app PRIVATE .)
 
+zephyr_library_include_directories_ifdef(CONFIG_BT_WIFI_PROV $<TARGET_PROPERTY:wifi_prov_core,BINARY_DIR>)
+target_link_libraries_ifdef(CONFIG_BT_WIFI_PROV app PRIVATE wifi_prov_ble)
+
 target_link_libraries(app PRIVATE
     utils 
     platform
 )
 
-zephyr_library_include_directories($<TARGET_PROPERTY:wifi_prov_core,BINARY_DIR>)
-
-target_link_libraries(app PRIVATE wifi_prov_ble)
 
 set(gen_dir ${CMAKE_CURRENT_BINARY_DIR}/certs)
 
