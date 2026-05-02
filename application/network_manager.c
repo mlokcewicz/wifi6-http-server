@@ -371,6 +371,56 @@ static void button_handler(uint32_t button_state, uint32_t has_changed)
 
 //------------------------------------------------------------------------------
 
+int wifi_set_power_state(bool enable)
+{
+	struct net_if *iface = net_if_get_first_wifi();
+
+	/* Define the Wi-Fi power save parameters structure */
+    struct wifi_ps_params ps_params = { 0 };
+
+	/* Check if power saving is currently enabled */
+    ps_params.enabled = enable ? WIFI_PS_ENABLED : WIFI_PS_DISABLED;
+
+    /* Send the power save request */
+    if (net_mgmt(NET_REQUEST_WIFI_PS, iface, &ps_params, sizeof(ps_params)))
+    {
+        LOG_ERR("Power save %s failed. Reason %s", ps_params.enabled ? "enable" : "disable",
+                wifi_ps_get_config_err_code_str(ps_params.fail_reason));
+        return -1;
+    }
+    LOG_INF("Set power save: %s", ps_params.enabled ? "enable" : "disable");
+
+	return 0;
+}
+
+int wifi_set_ps_wakeup_mode(bool listen_interval)
+{
+	struct net_if *iface = net_if_get_default();
+
+	/* Define the Wi-Fi power save parameters structure */
+    struct wifi_ps_params ps_params = { 0 };
+
+    /* Check and toggle the current wakeup mode */
+    ps_params.wakeup_mode = listen_interval ? WIFI_PS_WAKEUP_MODE_LISTEN_INTERVAL : WIFI_PS_WAKEUP_MODE_DTIM;
+
+    /* Set the request type to wakeup mode. */   
+    ps_params.type = WIFI_PS_PARAM_WAKEUP_MODE;
+
+    /* Send the wakeup mode request */
+    if (net_mgmt(NET_REQUEST_WIFI_PS, iface, &ps_params, sizeof(ps_params)))
+    {
+        LOG_ERR("Setting wakeup mode failed. Reason %s",
+                wifi_ps_get_config_err_code_str(ps_params.fail_reason));
+        return -1;
+    }
+    LOG_INF("Set wakeup mode: %s", ps_params.wakeup_mode ? "listen interval" : "DTIM");
+
+	return 0;
+}
+
+
+//------------------------------------------------------------------------------
+
 static void network_thread_func(void *unused1, void *unused2, void *unused3)
 {
 	ARG_UNUSED(unused1);
@@ -477,6 +527,9 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
     conn_mgr_mon_resend_status();
 
 	k_sem_take(&run_app, K_FOREVER);
+
+    wifi_set_power_state(true);
+    wifi_set_ps_wakeup_mode(true);
 
     int ret = 0;
 

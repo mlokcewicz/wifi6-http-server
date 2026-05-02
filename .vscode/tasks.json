@@ -62,20 +62,6 @@
             }
         },
         {
-            "label": "ram report",
-            "type": "process",
-            "command": "west",
-            "args": [
-                "build",
-                "-d", "build/v1.0.0_debug",
-                "-t", "ram_report"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
             "label": "clean",
             "type": "process",
             "command": "west",
