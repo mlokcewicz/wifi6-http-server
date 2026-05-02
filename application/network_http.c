@@ -53,7 +53,7 @@ static int server_resolve(void)
     struct zsock_addrinfo *result;
     struct zsock_addrinfo hints = {.ai_family = AF_INET, .ai_socktype = SOCK_STREAM};
 
-    err = zsock_getaddrinfo(CONFIG_HTTP_SAMPLE_HOSTNAME, CONFIG_HTTP_SAMPLE_PORT, &hints, &result);
+    err = zsock_getaddrinfo(CONFIG_HTTP_SAMPLE_HOSTNAME, CONFIG_HTTP_SAMPLE_PORT_TLS, &hints, &result);
     if (err != 0)
     {
         LOG_ERR("getaddrinfo failed, err: %d, %s", err, zsock_gai_strerror(err));
