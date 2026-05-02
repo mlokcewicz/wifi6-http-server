@@ -474,6 +474,8 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
 
     LOG_INF("Waiting for Wi-Fi connection");
 
+    conn_mgr_mon_resend_status();
+
 	k_sem_take(&run_app, K_FOREVER);
 
     int ret = 0;
@@ -524,6 +526,8 @@ static void network_thread_func(void *unused1, void *unused2, void *unused3)
 
     network_http_client_connect(false);
     network_http_client_test(false);
+
+    network_http_server_start();
 
     while (1)
     {

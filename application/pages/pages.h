@@ -1,12 +1,12 @@
 //------------------------------------------------------------------------------
 
-/// @file network_http.h
+/// @file pages.h
 /// @note Copyright (C) Michał Łokcewicz. All rights reserved.
 
 //------------------------------------------------------------------------------
 
-#ifndef NETWORK_HTTP_H_
-#define NETWORK_HTTP_H_
+#ifndef PAGES_H_
+#define PAGES_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,11 +18,7 @@ extern "C" {
 
 //------------------------------------------------------------------------------
 
-int network_http_client_connect(bool use_tls);
-
-int network_http_client_test(bool use_tls);
-
-int network_http_server_start(void);
+extern const char *index_page;
 
 //------------------------------------------------------------------------------
 
@@ -30,6 +26,6 @@ int network_http_server_start(void);
 }
 #endif
 
-#endif /* NETWORK_HTTP_H_ */
+#endif /* PAGES_H_ */
 
 //------------------------------------------------------------------------------
