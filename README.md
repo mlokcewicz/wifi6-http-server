@@ -1,11 +1,38 @@
 # wifi6-http-server 
 
-Simple HTTP server based on nRF5340 MCU and nRF7002 Wi-Fi 6 chip.
+Simple lightweight HTTP server based on Zephyr, nRF5340 MCU and nRF7002 Wi-Fi 6 chip.
 
 # Capabilities
 
-- Wi-Fi provision over BLE
-- FWU over BLE
+- **Wi-Fi power saving modes**
+  - Power Save disabled (maximum performance)
+  - DTIM-based wakeup (balanced power / connectivity)
+  - Listen Interval mode (reduced power consumption)
+  - Target Wake Time (TWT) support (Wi-Fi 6 optimized power saving)
+
+- **Wi-Fi provisioning via shell**
+  - Runtime configuration using Zephyr shell
+  - Scan, connect, and manage Wi-Fi networks from CLI
+
+- **LED control over HTTP**
+  - REST-like endpoint:
+    - `/led/`
+  - Simple control of on-board LEDs
+
+- **mDNS support**
+  - Device discoverable via `.local` hostname
+  - No need to know IP address
+
+### Optional features
+
+- **Wi-Fi provisioning over BLE**
+  - Configure network credentials using Bluetooth Low Energy
+
+- **HTTP-based communication**
+  - Extendable HTTP interface for device interaction / data exchange
+
+- **DFU over BLE (MCUboot)**
+  - Firmware update using MCUBoot and BLE transport
 
 ## Tools
 
