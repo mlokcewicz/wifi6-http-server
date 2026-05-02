@@ -51,7 +51,7 @@ Simple lightweight HTTP server based on Zephyr, nRF5340 MCU and nRF7002 Wi-Fi 6 
 
 Set: `ZEPHYR_SDK_INSTALL_DIR`, `ZEPHYR_BASE`, `Zephyr_DIR`
 
-`west build --sysbuild --pristine --cmake-only -b custom_plank -d build/build/<hw_version_<config> -- -DHW_BOARD_REVISION=<hw_version> -DBOARD_ROOT=. -DCONF_FILE=prj.conf;prj_<config>.conf`                
+`west build --sysbuild --pristine --cmake-only -b nrf7002dk/nrf5340/cpuapp/ns -d build/build/<hw_version_<config> -- -DHW_BOARD_REVISION=<hw_version> -DBOARD_ROOT=. -DEXTRA_CONF_FILE=prj_<config>.conf`                
 `cmake --preset <hw_version>_<config>`
 
 ### Build project
