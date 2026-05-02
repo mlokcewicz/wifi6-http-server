@@ -6,10 +6,7 @@
     "configurations": [
         {
             "name": "debug",
-            // Example:
-            // D:\Inne\Links>mklink /D epn D:\Elektronika\Repozytoria\GitHub\firmware\firmware-core\templates\nrf52\wifi6-http-server
             "cwd": "${workspaceFolder}",
-            // "cwd": "D:\\Inne\\Links\\epn",
             "executable": "build/v1.0.0_debug/whs/zephyr/zephyr.elf",
             "request": "launch",
             "type": "cortex-debug",
@@ -40,10 +37,7 @@
         },
         {
             "name": "attach",
-            // Example:
-            // D:\Inne\Links>mklink /D epn D:\Elektronika\Repozytoria\GitHub\firmware\firmware-core\templates\nrf52\wifi6-http-server
             "cwd": "${workspaceFolder}",
-            // "cwd": "D:\\Inne\\Links\\epn",
             "executable": "build/v1.0.0_debug/whs/zephyr/zephyr.elf",
             "request": "attach",
             "type": "cortex-debug",
